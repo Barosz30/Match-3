@@ -4,17 +4,30 @@
       v-for="tile in tiles"
       :key="tile.id"
       class="tile"
-      :class="{ selected: selected?.id === tile.id }"
+      :class="{
+        selected: selected?.id === tile.id,
+        removing: tile.removing
+      }"
       :style="getTileStyle(tile)"
       @click="handleClick(tile)"
     >
       <span v-if="!tile.locked">{{ tile.icon }}</span>
     </div>
+
+    <div
+      v-for="particle in particles"
+      :key="particle.id"
+      class="particle"
+      :style="{
+        top: `${particle.y}px`,
+        left: `${particle.x}px`
+      }"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import type { CSSProperties } from 'vue'
 
 const props = defineProps<{
@@ -25,7 +38,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:score' |  'update:moves', value: number): void
+  (e: 'update:score' | 'update:moves', value: number): void
 }>()
 
 const tileSize = 64
@@ -40,12 +53,25 @@ interface TileType {
   col: number
   locked?: boolean
   appearing?: boolean
+  removing?: boolean
 }
 
 const tiles = ref<TileType[]>([])
 const selected = ref<TileType | null>(null)
 const score = ref(0)
 const moves = ref(0)
+
+const particles = ref<{ id: number; x: number; y: number }[]>([])
+let particleId = 0
+
+let matchSound: HTMLAudioElement | null = null
+
+onMounted(() => {
+  tiles.value = generateInitialBoard()
+  if (typeof window !== 'undefined') {
+    matchSound = new Audio('/sounds/match.wav')
+  }
+})
 
 function generateInitialBoard(): TileType[] {
   const result: TileType[] = []
@@ -56,26 +82,17 @@ function generateInitialBoard(): TileType[] {
 
       let icon: string
       let color: string
-
       do {
         const base = props.types[Math.floor(Math.random() * props.types.length)]
         icon = base.icon
         color = base.color
       } while (
         col >= 2 &&
-        result.some(t =>
-          t.row === row &&
-          (t.col === col - 1 || t.col === col - 2) &&
-          result.find(tt => tt.row === row && tt.col === col - 1)?.icon === icon &&
-          result.find(tt => tt.row === row && tt.col === col - 2)?.icon === icon
-        ) ||
+        result.find(t => t.row === row && t.col === col - 1)?.icon === icon &&
+        result.find(t => t.row === row && t.col === col - 2)?.icon === icon ||
         row >= 2 &&
-        result.some(t =>
-          t.col === col &&
-          (t.row === row - 1 || t.row === row - 2) &&
-          result.find(tt => tt.col === col && tt.row === row - 1)?.icon === icon &&
-          result.find(tt => tt.col === col && tt.row === row - 2)?.icon === icon
-        )
+        result.find(t => t.col === col && t.row === row - 1)?.icon === icon &&
+        result.find(t => t.col === col && t.row === row - 2)?.icon === icon
       )
 
       result.push({
@@ -105,15 +122,19 @@ function handleClick(tile: TileType) {
       moves.value++
       emit('update:moves', moves.value)
 
-      // odczekaj na animację przesunięcia
       setTimeout(() => {
-        if (!checkAndClearMatches()) {
-          swapTiles(a, b)
-        } else {
-          setTimeout(() => applyGravity(), 250)
-        }
         selected.value = null
-      }, 300) // dopasowane do CSS transition
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const matched = checkAndClearMatches()
+            if (matched) {
+              setTimeout(() => applyGravity(), 600)
+            } else {
+              swapTiles(a, b)
+            }
+          })
+        })
+      }, 300)
     } else {
       selected.value = b
     }
@@ -136,6 +157,8 @@ function swapTiles(a: TileType, b: TileType) {
 }
 
 function checkAndClearMatches(): boolean {
+  if (tiles.value.some(t => t.removing)) return false
+
   const matchedIds = new Set<number>()
 
   for (let row = 0; row < props.rows; row++) {
@@ -166,7 +189,27 @@ function checkAndClearMatches(): boolean {
 
   if (matchedIds.size === 0) return false
 
-  tiles.value = tiles.value.filter(tile => !matchedIds.has(tile.id))
+  if (matchSound) {
+    matchSound.currentTime = 0
+    matchSound.play()
+  }
+
+  for (const tile of tiles.value) {
+    if (matchedIds.has(tile.id)) {
+      tile.removing = true
+      particles.value.push({
+        id: particleId++,
+        x: tile.col * tileSize + tileSize / 2,
+        y: tile.row * tileSize + tileSize / 2,
+      })
+    }
+  }
+
+  setTimeout(() => {
+    tiles.value = tiles.value.filter(tile => !tile.removing)
+    particles.value = []
+  }, 600)
+
   score.value += matchedIds.size * 10
   emit('update:score', score.value)
   return true
@@ -192,10 +235,10 @@ function applyGravity() {
 
   setTimeout(() => {
     if (checkAndClearMatches()) {
-      setTimeout(() => applyGravity(), 250)
+      setTimeout(() => applyGravity(), 600)
     } else {
       setTimeout(() => {
-        tiles.value = [...tiles.value] // wymuszenie renderu
+        tiles.value = [...tiles.value]
       }, 300)
     }
   }, 250)
@@ -253,10 +296,6 @@ function getTileStyle(tile: TileType): CSSProperties {
     opacity: tile.locked ? 0.2 : 1,
   }
 }
-
-onMounted(() => {
-  tiles.value = generateInitialBoard()
-})
 </script>
 
 <style scoped>
@@ -269,8 +308,34 @@ onMounted(() => {
 }
 .tile {
   user-select: none;
+  transition: opacity 0.3s ease, transform 0.3s linear;
 }
 .selected {
   outline: 2px solid #00f;
+}
+.tile.removing {
+  opacity: 0;
+  transform: scale(0.7);
+  pointer-events: none;
+}
+.particle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: white;
+  opacity: 0.9;
+  pointer-events: none;
+  animation: pop 0.6s ease-out forwards;
+}
+@keyframes pop {
+  0% {
+    transform: scale(1) translate(0, 0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.2) translate(0, -20px);
+    opacity: 0;
+  }
 }
 </style>
