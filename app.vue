@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Match3Board from './components/Match3Board.vue';
+import Match3Game from './components/Match3Game.vue';
 
 const types = [
   { icon: '🍓', color: '#e74c3c' },
@@ -7,11 +7,12 @@ const types = [
   { icon: '🍇', color: '#8e44ad' },
   { icon: '🍊', color: '#e67e22' }
 ]
+const availableMoves = 20
 
 </script>
 
 <template>
   <div>
-    <Match3Board :cols="8" :rows="8" :types="types" />
+    <Match3Game :cols="8" :rows="8" :types="types" :available-moves="availableMoves" />
   </div>
 </template>
