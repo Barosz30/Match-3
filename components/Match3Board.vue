@@ -14,7 +14,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watchEffect } from 'vue'
+import { ref, computed } from 'vue'
 import type { CSSProperties } from 'vue'
 
 const props = defineProps<{
@@ -24,7 +24,11 @@ const props = defineProps<{
   lockedTiles?: number[]
 }>()
 
-const tileSize = 64 // in px
+const emit = defineEmits<{
+  (e: 'update:score' |  'update:moves', value: number): void
+}>()
+
+const tileSize = 64
 const lockedIndices = computed(() => props.lockedTiles ?? [])
 let tileIdCounter = 0
 
@@ -35,6 +39,7 @@ interface TileType {
   row: number
   col: number
   locked?: boolean
+  appearing?: boolean
 }
 
 const tiles = ref<TileType[]>([])
@@ -48,12 +53,35 @@ function generateInitialBoard(): TileType[] {
     for (let col = 0; col < props.cols; col++) {
       const index = row * props.cols + col
       const locked = lockedIndices.value.includes(index)
-      const base = props.types[Math.floor(Math.random() * props.types.length)]
+
+      let icon: string
+      let color: string
+
+      do {
+        const base = props.types[Math.floor(Math.random() * props.types.length)]
+        icon = base.icon
+        color = base.color
+      } while (
+        col >= 2 &&
+        result.some(t =>
+          t.row === row &&
+          (t.col === col - 1 || t.col === col - 2) &&
+          result.find(tt => tt.row === row && tt.col === col - 1)?.icon === icon &&
+          result.find(tt => tt.row === row && tt.col === col - 2)?.icon === icon
+        ) ||
+        row >= 2 &&
+        result.some(t =>
+          t.col === col &&
+          (t.row === row - 1 || t.row === row - 2) &&
+          result.find(tt => tt.col === col && tt.row === row - 1)?.icon === icon &&
+          result.find(tt => tt.col === col && tt.row === row - 2)?.icon === icon
+        )
+      )
 
       result.push({
         id: tileIdCounter++,
-        icon: base.icon,
-        color: base.color,
+        icon,
+        color,
         row,
         col,
         locked,
@@ -75,13 +103,17 @@ function handleClick(tile: TileType) {
     if (areAdjacent(a, b)) {
       swapTiles(a, b)
       moves.value++
-      if (!checkAndClearMatches()) {
-        // undo
-        setTimeout(() => swapTiles(a, b), 200)
-      } else {
-        setTimeout(() => applyGravity(), 250)
-      }
-      selected.value = null
+      emit('update:moves', moves.value)
+
+      // odczekaj na animację przesunięcia
+      setTimeout(() => {
+        if (!checkAndClearMatches()) {
+          swapTiles(a, b)
+        } else {
+          setTimeout(() => applyGravity(), 250)
+        }
+        selected.value = null
+      }, 300) // dopasowane do CSS transition
     } else {
       selected.value = b
     }
@@ -108,22 +140,26 @@ function checkAndClearMatches(): boolean {
 
   for (let row = 0; row < props.rows; row++) {
     for (let col = 0; col < props.cols - 2; col++) {
-      const match = getTile(row, col), next1 = getTile(row, col + 1), next2 = getTile(row, col + 2)
-      if (match && next1 && next2 && match.icon === next1.icon && match.icon === next2.icon) {
-        matchedIds.add(match.id)
-        matchedIds.add(next1.id)
-        matchedIds.add(next2.id)
+      const t1 = getTile(row, col)
+      const t2 = getTile(row, col + 1)
+      const t3 = getTile(row, col + 2)
+      if (t1 && t2 && t3 && t1.icon === t2.icon && t1.icon === t3.icon) {
+        matchedIds.add(t1.id)
+        matchedIds.add(t2.id)
+        matchedIds.add(t3.id)
       }
     }
   }
 
   for (let col = 0; col < props.cols; col++) {
     for (let row = 0; row < props.rows - 2; row++) {
-      const match = getTile(row, col), next1 = getTile(row + 1, col), next2 = getTile(row + 2, col)
-      if (match && next1 && next2 && match.icon === next1.icon && match.icon === next2.icon) {
-        matchedIds.add(match.id)
-        matchedIds.add(next1.id)
-        matchedIds.add(next2.id)
+      const t1 = getTile(row, col)
+      const t2 = getTile(row + 1, col)
+      const t3 = getTile(row + 2, col)
+      if (t1 && t2 && t3 && t1.icon === t2.icon && t1.icon === t3.icon) {
+        matchedIds.add(t1.id)
+        matchedIds.add(t2.id)
+        matchedIds.add(t3.id)
       }
     }
   }
@@ -132,6 +168,7 @@ function checkAndClearMatches(): boolean {
 
   tiles.value = tiles.value.filter(tile => !matchedIds.has(tile.id))
   score.value += matchedIds.size * 10
+  emit('update:score', score.value)
   return true
 }
 
@@ -150,24 +187,40 @@ function applyGravity() {
       targetRow--
     }
 
-    while (targetRow >= 0) {
-      const base = props.types[Math.floor(Math.random() * props.types.length)]
-      tiles.value.push({
-        id: tileIdCounter++,
-        icon: base.icon,
-        color: base.color,
-        row: targetRow,
-        col,
-      })
-      targetRow--
-    }
+    spawnNewTiles(col, targetRow)
   }
 
   setTimeout(() => {
     if (checkAndClearMatches()) {
       setTimeout(() => applyGravity(), 250)
+    } else {
+      setTimeout(() => {
+        tiles.value = [...tiles.value] // wymuszenie renderu
+      }, 300)
     }
   }, 250)
+}
+
+function spawnNewTiles(col: number, fromRow: number) {
+  let targetRow = fromRow
+  while (targetRow >= 0) {
+    const base = props.types[Math.floor(Math.random() * props.types.length)]
+    const newTile: TileType = {
+      id: tileIdCounter++,
+      icon: base.icon,
+      color: base.color,
+      row: targetRow,
+      col,
+      appearing: true,
+    }
+    tiles.value.push(newTile)
+
+    requestAnimationFrame(() => {
+      newTile.appearing = false
+    })
+
+    targetRow--
+  }
 }
 
 function getTile(row: number, col: number): TileType | undefined {
@@ -182,11 +235,12 @@ const boardStyle = computed<CSSProperties>(() => ({
 }))
 
 function getTileStyle(tile: TileType): CSSProperties {
+  const top = tile.appearing ? -tileSize : tile.row * tileSize
   return {
     position: 'absolute',
     width: `${tileSize}px`,
     height: `${tileSize}px`,
-    top: `${tile.row * tileSize}px`,
+    top: `${top}px`,
     left: `${tile.col * tileSize}px`,
     backgroundColor: tile.color,
     transition: 'top 0.3s ease, left 0.3s ease',
@@ -200,7 +254,7 @@ function getTileStyle(tile: TileType): CSSProperties {
   }
 }
 
-watchEffect(() => {
+onMounted(() => {
   tiles.value = generateInitialBoard()
 })
 </script>
@@ -211,6 +265,7 @@ watchEffect(() => {
   background-color: #f9f9f9;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border-radius: 12px;
+  overflow: hidden;
 }
 .tile {
   user-select: none;
