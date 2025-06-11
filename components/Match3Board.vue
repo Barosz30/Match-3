@@ -60,10 +60,8 @@ const tiles = ref<TileType[]>([])
 const selected = ref<TileType | null>(null)
 const score = ref(0)
 const moves = ref(0)
-
 const particles = ref<{ id: number; x: number; y: number }[]>([])
 let particleId = 0
-
 let matchSound: HTMLAudioElement | null = null
 
 onMounted(() => {
@@ -74,38 +72,94 @@ onMounted(() => {
 })
 
 function generateInitialBoard(): TileType[] {
-  const result: TileType[] = []
+  let attempt = 0
+  let board: TileType[] = []
+
+  do {
+    board = []
+    for (let row = 0; row < props.rows; row++) {
+      for (let col = 0; col < props.cols; col++) {
+        const index = row * props.cols + col
+        const locked = lockedIndices.value.includes(index)
+
+        let icon: string
+        let color: string
+        do {
+          const base = props.types[Math.floor(Math.random() * props.types.length)]
+          icon = base.icon
+          color = base.color
+        } while (
+          col >= 2 &&
+          board.find(t => t.row === row && t.col === col - 1)?.icon === icon &&
+          board.find(t => t.row === row && t.col === col - 2)?.icon === icon ||
+          row >= 2 &&
+          board.find(t => t.col === col && t.row === row - 1)?.icon === icon &&
+          board.find(t => t.col === col && t.row === row - 2)?.icon === icon
+        )
+
+        board.push({
+          id: tileIdCounter++,
+          icon,
+          color,
+          row,
+          col,
+          locked,
+        })
+      }
+    }
+
+    tiles.value = board
+    attempt++
+    if (attempt > 20) break
+  } while (!hasAnyValidMove())
+
+  return board
+}
+
+function hasAnyValidMove(): boolean {
   for (let row = 0; row < props.rows; row++) {
     for (let col = 0; col < props.cols; col++) {
-      const index = row * props.cols + col
-      const locked = lockedIndices.value.includes(index)
+      const tile = getTile(row, col)
+      if (!tile) continue
 
-      let icon: string
-      let color: string
-      do {
-        const base = props.types[Math.floor(Math.random() * props.types.length)]
-        icon = base.icon
-        color = base.color
-      } while (
-        col >= 2 &&
-        result.find(t => t.row === row && t.col === col - 1)?.icon === icon &&
-        result.find(t => t.row === row && t.col === col - 2)?.icon === icon ||
-        row >= 2 &&
-        result.find(t => t.col === col && t.row === row - 1)?.icon === icon &&
-        result.find(t => t.col === col && t.row === row - 2)?.icon === icon
-      )
+      const right = getTile(row, col + 1)
+      const down = getTile(row + 1, col)
 
-      result.push({
-        id: tileIdCounter++,
-        icon,
-        color,
-        row,
-        col,
-        locked,
-      })
+      if (right) {
+        swapTiles(tile, right)
+        if (createsMatch(tile) || createsMatch(right)) {
+          swapTiles(tile, right)
+          return true
+        }
+        swapTiles(tile, right)
+      }
+
+      if (down) {
+        swapTiles(tile, down)
+        if (createsMatch(tile) || createsMatch(down)) {
+          swapTiles(tile, down)
+          return true
+        }
+        swapTiles(tile, down)
+      }
     }
   }
-  return result
+  return false
+}
+
+function createsMatch(tile: TileType): boolean {
+  const sameIcon = (r: number, c: number) => getTile(r, c)?.icon === tile.icon
+  const r = tile.row
+  const c = tile.col
+
+  return (
+    (sameIcon(r, c - 1) && sameIcon(r, c - 2)) ||
+    (sameIcon(r, c + 1) && sameIcon(r, c + 2)) ||
+    (sameIcon(r, c - 1) && sameIcon(r, c + 1)) ||
+    (sameIcon(r - 1, c) && sameIcon(r - 2, c)) ||
+    (sameIcon(r + 1, c) && sameIcon(r + 2, c)) ||
+    (sameIcon(r - 1, c) && sameIcon(r + 1, c))
+  )
 }
 
 function handleClick(tile: TileType) {
@@ -242,6 +296,10 @@ function applyGravity() {
       }, 300)
     }
   }, 250)
+
+  if (!hasAnyValidMove()) {
+    tiles.value = generateInitialBoard()
+  }
 }
 
 function spawnNewTiles(col: number, fromRow: number) {
