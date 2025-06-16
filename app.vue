@@ -46,12 +46,15 @@ const startGame = (difficulty: 'easy' | 'medium' | 'hard') => {
 </script>
 
 <template>
-  <div>
+  <div class="wrapper">
     <div v-if="!gameSettings">
-      <h2>Wybierz poziom trudności:</h2>
-      <button @click="startGame('easy')">Łatwy</button>
-      <button @click="startGame('medium')">Średni</button>
-      <button @click="startGame('hard')">Trudny</button>
+      <h2 :style="{textAlign: `center`}">Wybierz poziom trudności:</h2>
+      <div>
+        <button @click="startGame('easy')">Łatwy</button>
+        <button @click="startGame('medium')">Średni</button>
+        <button @click="startGame('hard')">Trudny</button>
+      </div>
+      
     </div>
 
     <div v-else>
@@ -65,11 +68,34 @@ const startGame = (difficulty: 'easy' | 'medium' | 'hard') => {
   </div>
 </template>
 
+<style>
+
+body {
+  margin: 0;
+}
+
+</style>
+
 <style scoped>
+
 button {
   margin: 8px;
   padding: 10px 20px;
   font-size: 16px;
   cursor: pointer;
+  background-color: #3498db;
+  border-radius: 8px;
+  transition: background-color 0.3s;
+  color: #ffffff;
 }
+button:hover {
+  background-color: #2980b9;
+}
+.wrapper {
+  display: flex;
+  height: 100dvh;
+  align-items: center;
+  justify-content: center;
+}
+
 </style>

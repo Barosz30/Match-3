@@ -1,8 +1,6 @@
 <template>
   <div class="scoreboard">
     <div>Punkty: {{ score.total }}</div>
-    <div>Runda: {{ score.round }}</div>
-    <div>Rekord: {{ score.high }}</div>
   </div>
 </template>
 
