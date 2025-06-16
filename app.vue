@@ -19,42 +19,38 @@ const gameSettings = ref<null | {
   types: typeof allTypes
 }>(null)
 
+const playerName = ref('Ryszard')
+
 const startGame = (difficulty: 'easy' | 'medium' | 'hard') => {
-  if (difficulty === 'easy') {
-    gameSettings.value = {
-      cols: 6,
-      rows: 6,
-      availableMoves: 30,
-      types: allTypes.slice(0, 4)
-    }
-  } else if (difficulty === 'medium') {
-    gameSettings.value = {
-      cols: 7,
-      rows: 7,
-      availableMoves: 30,
-      types: allTypes.slice(0, 6)
-    }
-  } else if (difficulty === 'hard') {
-    gameSettings.value = {
-      cols: 8,
-      rows: 8,
-      availableMoves: 30,
-      types: allTypes
-    }
+  if (!playerName.value.trim()) return
+
+  const settings = {
+    easy: { cols: 6, rows: 6, availableMoves: 30, types: allTypes.slice(0, 4) },
+    medium: { cols: 7, rows: 7, availableMoves: 30, types: allTypes.slice(0, 6) },
+    hard: { cols: 8, rows: 8, availableMoves: 30, types: allTypes }
   }
+
+  gameSettings.value = settings[difficulty]
 }
 </script>
 
 <template>
   <div class="wrapper">
-    <div v-if="!gameSettings">
-      <h2 :style="{textAlign: `center`}">Wybierz poziom trudności:</h2>
-      <div>
-        <button @click="startGame('easy')">Łatwy</button>
-        <button @click="startGame('medium')">Średni</button>
-        <button @click="startGame('hard')">Trudny</button>
+    <div v-if="!gameSettings" class="start-screen">
+      <h2 class="title">Podaj swoje imię:</h2>
+      <input
+        v-model="playerName"
+        type="text"
+        class="name-input"
+        placeholder="Twoje imię"
+      >
+
+      <h2 class="title">Wybierz poziom trudności:</h2>
+      <div class="button-group">
+        <button :disabled="!playerName.trim()" @click="startGame('easy')">Łatwy</button>
+        <button :disabled="!playerName.trim()" @click="startGame('medium')">Średni</button>
+        <button :disabled="!playerName.trim()" @click="startGame('hard')">Trudny</button>
       </div>
-      
     </div>
 
     <div v-else>
@@ -63,39 +59,72 @@ const startGame = (difficulty: 'easy' | 'medium' | 'hard') => {
         :rows="gameSettings.rows"
         :types="gameSettings.types"
         :available-moves="gameSettings.availableMoves"
+        :playerName="playerName"
       />
     </div>
   </div>
 </template>
 
 <style>
-
 body {
   margin: 0;
+  font-family: system-ui, sans-serif;
+  font-size: 1rem;
 }
-
 </style>
 
 <style scoped>
-
-button {
-  margin: 8px;
-  padding: 10px 20px;
-  font-size: 16px;
-  cursor: pointer;
-  background-color: #3498db;
-  border-radius: 8px;
-  transition: background-color 0.3s;
-  color: #ffffff;
-}
-button:hover {
-  background-color: #2980b9;
-}
 .wrapper {
   display: flex;
   height: 100dvh;
   align-items: center;
   justify-content: center;
+  padding: 2rem;
+  box-sizing: border-box;
 }
 
+.start-screen {
+  text-align: center;
+  max-width: 25rem;
+  width: 100%;
+}
+
+.title {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.name-input {
+  width: 100%;
+  padding: 0.75em 1em;
+  font-size: 1em;
+  margin-bottom: 2rem;
+  border-radius: 0.5em;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+button {
+  padding: 0.75em 1.5em;
+  font-size: 1.1em;
+  cursor: pointer;
+  background-color: #3498db;
+  border: none;
+  border-radius: 0.5em;
+  color: #fff;
+  transition: background-color 0.3s;
+}
+button:hover:enabled {
+  background-color: #2980b9;
+}
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 </style>

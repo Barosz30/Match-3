@@ -1,5 +1,6 @@
 <template>
   <div class="scoreboard">
+    <div>{{ score.name }}</div>
     <div>Punkty: {{ score.total }}</div>
   </div>
 </template>
@@ -8,8 +9,7 @@
 defineProps<{
   score: {
     total: number
-    round: number
-    high: number
+    name: string
   }
 }>()
 </script>
@@ -18,12 +18,12 @@ defineProps<{
 .scoreboard {
   background: rgba(0, 0, 0, 0.6);
   color: white;
-  padding: 12px 20px;
-  border-radius: 10px;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.625rem;
   font-family: sans-serif;
-  font-size: 16px;
+  font-size: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 1rem;
 }
 </style>

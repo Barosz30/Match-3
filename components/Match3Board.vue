@@ -41,7 +41,7 @@ const emit = defineEmits<{
   (e: 'update:score' | 'update:moves', value: number): void
 }>()
 
-const tileSize = 64
+const tileSize = 4
 const lockedIndices = computed(() => props.lockedTiles ?? [])
 let tileIdCounter = 0
 
@@ -330,8 +330,8 @@ function getTile(row: number, col: number): TileType | undefined {
 
 const boardStyle = computed<CSSProperties>(() => ({
   position: 'relative',
-  width: `${props.cols * tileSize}px`,
-  height: `${props.rows * tileSize}px`,
+  width: `${props.cols * tileSize}rem`,
+  height: `${props.rows * tileSize}rem`,
   margin: '0 auto',
 }))
 
@@ -339,17 +339,17 @@ function getTileStyle(tile: TileType): CSSProperties {
   const top = tile.appearing ? -tileSize : tile.row * tileSize
   return {
     position: 'absolute',
-    width: `${tileSize}px`,
-    height: `${tileSize}px`,
-    top: `${top}px`,
-    left: `${tile.col * tileSize}px`,
+    width: `${tileSize}rem`,
+    height: `${tileSize}rem`,
+    top: `${top}rem`,
+    left: `${tile.col * tileSize}rem`,
     backgroundColor: tile.color,
     transition: 'top 0.3s ease, left 0.3s ease',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     fontSize: '2rem',
-    borderRadius: '8px',
+    borderRadius: '0.5rem',
     cursor: tile.locked ? 'default' : 'pointer',
     opacity: tile.locked ? 0.2 : 1,
   }
@@ -358,41 +358,47 @@ function getTileStyle(tile: TileType): CSSProperties {
 
 <style scoped>
 .board {
-  border: 2px solid #888;
+  border: 0.125rem solid #888;
   background-color: #f9f9f9;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-radius: 12px;
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
+  border-radius: 0.75rem;
   overflow: hidden;
 }
+
 .tile {
   user-select: none;
   transition: opacity 0.3s ease, transform 0.3s linear;
 }
+
 .selected {
-  outline: 2px solid #00f;
+  outline: 0.125rem solid #00f;
+  z-index: 5;
 }
+
 .tile.removing {
   opacity: 0;
   transform: scale(0.7);
   pointer-events: none;
 }
+
 .particle {
   position: absolute;
-  width: 12px;
-  height: 12px;
+  width: 0.75rem;
+  height: 0.75rem;
   border-radius: 50%;
   background-color: white;
   opacity: 0.9;
   pointer-events: none;
   animation: pop 0.6s ease-out forwards;
 }
+
 @keyframes pop {
   0% {
     transform: scale(1) translate(0, 0);
     opacity: 1;
   }
   100% {
-    transform: scale(0.2) translate(0, -20px);
+    transform: scale(0.2) translate(0, -1.25rem);
     opacity: 0;
   }
 }

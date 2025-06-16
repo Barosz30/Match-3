@@ -1,6 +1,6 @@
 <template>
   <div class="match3-game">
-    <PlayerScore :score="{ total: totalScore, round: roundNumber, high: highScore }" />
+    <PlayerScore :score="{ total: totalScore, name: playerName }" />
 
     <Match3Board
       :rows="rows"
@@ -28,11 +28,11 @@ const props = defineProps<{
   types: { icon: string; color: string }[]
   lockedTiles?: number[]
   availableMoves: number
+  playerName: string
 }>()
 
 const totalScore = ref(0)
 const highScore = ref(0)
-const roundNumber = ref(1)
 const movesMade = ref(0)
 
 const remainingMoves = computed(() => props.availableMoves - movesMade.value)
@@ -60,11 +60,12 @@ watch(totalScore, (val) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
+  gap: 1rem;
+  padding: 1rem;
 }
+
 .moves-left {
-  font-size: 16px;
-  margin-top: 8px;
+  font-size: 1rem;
+  margin-top: 0.5rem;
 }
 </style>
