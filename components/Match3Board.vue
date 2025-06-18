@@ -11,7 +11,9 @@
       :style="getTileStyle(tile)"
       @click="handleClick(tile)"
     >
-      <span v-if="!tile.locked">{{ tile.icon }}</span>
+      <span v-if="!tile.locked">
+        {{ tile.specialType === 'bomb' ? '💣' : tile.specialType === 'line' ? '💥' : tile.icon }}
+      </span>
     </div>
 
     <div
@@ -54,6 +56,7 @@ interface TileType {
   locked?: boolean
   appearing?: boolean
   removing?: boolean
+  specialType?: 'line' | 'bomb'
 }
 
 const tiles = ref<TileType[]>([])
@@ -74,7 +77,6 @@ onMounted(() => {
 function generateInitialBoard(): TileType[] {
   let attempt = 0
   let board: TileType[] = []
-
   do {
     board = []
     for (let row = 0; row < props.rows; row++) {
@@ -89,25 +91,13 @@ function generateInitialBoard(): TileType[] {
           icon = base.icon
           color = base.color
         } while (
-          col >= 2 &&
-          board.find(t => t.row === row && t.col === col - 1)?.icon === icon &&
-          board.find(t => t.row === row && t.col === col - 2)?.icon === icon ||
-          row >= 2 &&
-          board.find(t => t.col === col && t.row === row - 1)?.icon === icon &&
-          board.find(t => t.col === col && t.row === row - 2)?.icon === icon
+          col >= 2 && board.find(t => t.row === row && t.col === col - 1)?.icon === icon && board.find(t => t.row === row && t.col === col - 2)?.icon === icon ||
+          row >= 2 && board.find(t => t.col === col && t.row === row - 1)?.icon === icon && board.find(t => t.col === col && t.row === row - 2)?.icon === icon
         )
 
-        board.push({
-          id: tileIdCounter++,
-          icon,
-          color,
-          row,
-          col,
-          locked,
-        })
+        board.push({ id: tileIdCounter++, icon, color, row, col, locked })
       }
     }
-
     tiles.value = board
     attempt++
     if (attempt > 20) break
@@ -120,34 +110,30 @@ function hasAnyValidMove(): boolean {
   for (let row = 0; row < props.rows; row++) {
     for (let col = 0; col < props.cols; col++) {
       const tile = getTile(row, col)
-      if (!tile) continue
+      if (!tile || tile.locked) continue
 
       const right = getTile(row, col + 1)
       const down = getTile(row + 1, col)
 
-      if (right) {
+      if (right && !right.locked) {
         swapTiles(tile, right)
-        if (createsMatch(tile) || createsMatch(right)) {
-          swapTiles(tile, right)
-          return true
-        }
+        const match = checkCreatesMatch(tile) || checkCreatesMatch(right)
         swapTiles(tile, right)
+        if (match) return true
       }
 
-      if (down) {
+      if (down && !down.locked) {
         swapTiles(tile, down)
-        if (createsMatch(tile) || createsMatch(down)) {
-          swapTiles(tile, down)
-          return true
-        }
+        const match = checkCreatesMatch(tile) || checkCreatesMatch(down)
         swapTiles(tile, down)
+        if (match) return true
       }
     }
   }
   return false
 }
 
-function createsMatch(tile: TileType): boolean {
+function checkCreatesMatch(tile: TileType): boolean {
   const sameIcon = (r: number, c: number) => getTile(r, c)?.icon === tile.icon
   const r = tile.row
   const c = tile.col
@@ -160,6 +146,25 @@ function createsMatch(tile: TileType): boolean {
     (sameIcon(r + 1, c) && sameIcon(r + 2, c)) ||
     (sameIcon(r - 1, c) && sameIcon(r + 1, c))
   )
+}
+
+function getTile(row: number, col: number): TileType | undefined {
+  return tiles.value.find(tile => tile.row === row && tile.col === col)
+}
+
+function areAdjacent(a: TileType, b: TileType): boolean {
+  const dx = Math.abs(a.col - b.col)
+  const dy = Math.abs(a.row - b.row)
+  return dx + dy === 1
+}
+
+function swapTiles(a: TileType, b: TileType) {
+  const tempRow = a.row
+  const tempCol = a.col
+  a.row = b.row
+  a.col = b.col
+  b.row = tempRow
+  b.col = tempCol
 }
 
 function handleClick(tile: TileType) {
@@ -180,6 +185,18 @@ function handleClick(tile: TileType) {
         selected.value = null
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
+            if (a.specialType) {
+              triggerSpecial(a)
+              removeMarkedTiles()
+              setTimeout(() => applyGravity(), 600)
+              return
+            }
+            if (b.specialType) {
+              triggerSpecial(b)
+              removeMarkedTiles()
+              setTimeout(() => applyGravity(), 600)
+              return
+            }
             const matched = checkAndClearMatches()
             if (matched) {
               setTimeout(() => applyGravity(), 600)
@@ -195,53 +212,78 @@ function handleClick(tile: TileType) {
   }
 }
 
-function areAdjacent(a: TileType, b: TileType): boolean {
-  const dx = Math.abs(a.col - b.col)
-  const dy = Math.abs(a.row - b.row)
-  return dx + dy === 1
-}
-
-function swapTiles(a: TileType, b: TileType) {
-  const tempRow = a.row
-  const tempCol = a.col
-  a.row = b.row
-  a.col = b.col
-  b.row = tempRow
-  b.col = tempCol
+function triggerSpecial(tile: TileType) {
+  if (tile.specialType === 'line') {
+    for (let col = 0; col < props.cols; col++) {
+      const t = getTile(tile.row, col)
+      if (t && !t.locked) t.removing = true
+    }
+  } else if (tile.specialType === 'bomb') {
+    for (let r = tile.row - 1; r <= tile.row + 1; r++) {
+      for (let c = tile.col - 1; c <= tile.col + 1; c++) {
+        const t = getTile(r, c)
+        if (t && !t.locked) t.removing = true
+      }
+    }
+  }
 }
 
 function checkAndClearMatches(): boolean {
-  if (tiles.value.some(t => t.removing)) return false
+  const matchedGroups: TileType[][] = []
+
+  // Horizontal
+  for (let row = 0; row < props.rows; row++) {
+    let match: TileType[] = []
+    for (let col = 0; col < props.cols; col++) {
+      const current = getTile(row, col)
+      if (!current || current.locked) {
+        if (match.length >= 3) matchedGroups.push([...match])
+        match = []
+        continue
+      }
+      if (match.length === 0 || match[0].icon === current.icon) {
+        match.push(current)
+      } else {
+        if (match.length >= 3) matchedGroups.push([...match])
+        match = [current]
+      }
+    }
+    if (match.length >= 3) matchedGroups.push([...match])
+  }
+
+  // Vertical
+  for (let col = 0; col < props.cols; col++) {
+    let match: TileType[] = []
+    for (let row = 0; row < props.rows; row++) {
+      const current = getTile(row, col)
+      if (!current || current.locked) {
+        if (match.length >= 3) matchedGroups.push([...match])
+        match = []
+        continue
+      }
+      if (match.length === 0 || match[0].icon === current.icon) {
+        match.push(current)
+      } else {
+        if (match.length >= 3) matchedGroups.push([...match])
+        match = [current]
+      }
+    }
+    if (match.length >= 3) matchedGroups.push([...match])
+  }
+
+  if (matchedGroups.length === 0) return false
 
   const matchedIds = new Set<number>()
 
-  for (let row = 0; row < props.rows; row++) {
-    for (let col = 0; col < props.cols - 2; col++) {
-      const t1 = getTile(row, col)
-      const t2 = getTile(row, col + 1)
-      const t3 = getTile(row, col + 2)
-      if (t1 && t2 && t3 && t1.icon === t2.icon && t1.icon === t3.icon) {
-        matchedIds.add(t1.id)
-        matchedIds.add(t2.id)
-        matchedIds.add(t3.id)
-      }
+  for (const group of matchedGroups) {
+    for (const tile of group) matchedIds.add(tile.id)
+    if (group.length >= 4) {
+      const specialTile = group[Math.floor(group.length / 2)]
+      specialTile.specialType = group.length >= 5 ? 'bomb' : 'line'
+      specialTile.removing = false
+      matchedIds.delete(specialTile.id)
     }
   }
-
-  for (let col = 0; col < props.cols; col++) {
-    for (let row = 0; row < props.rows - 2; row++) {
-      const t1 = getTile(row, col)
-      const t2 = getTile(row + 1, col)
-      const t3 = getTile(row + 2, col)
-      if (t1 && t2 && t3 && t1.icon === t2.icon && t1.icon === t3.icon) {
-        matchedIds.add(t1.id)
-        matchedIds.add(t2.id)
-        matchedIds.add(t3.id)
-      }
-    }
-  }
-
-  if (matchedIds.size === 0) return false
 
   if (matchSound) {
     matchSound.currentTime = 0
@@ -251,11 +293,7 @@ function checkAndClearMatches(): boolean {
   for (const tile of tiles.value) {
     if (matchedIds.has(tile.id)) {
       tile.removing = true
-      particles.value.push({
-        id: particleId++,
-        x: tile.col * tileSize + tileSize / 2,
-        y: tile.row * tileSize + tileSize / 2,
-      })
+      particles.value.push({ id: particleId++, x: tile.col * tileSize + tileSize / 2, y: tile.row * tileSize + tileSize / 2 })
     }
   }
 
@@ -271,19 +309,13 @@ function checkAndClearMatches(): boolean {
 
 function applyGravity() {
   for (let col = 0; col < props.cols; col++) {
-    const columnTiles = tiles.value
-      .filter(tile => tile.col === col)
-      .sort((a, b) => a.row - b.row)
-
+    const columnTiles = tiles.value.filter(tile => tile.col === col).sort((a, b) => a.row - b.row)
     let targetRow = props.rows - 1
     for (let i = columnTiles.length - 1; i >= 0; i--) {
       const tile = columnTiles[i]
-      if (tile.row !== targetRow) {
-        tile.row = targetRow
-      }
+      if (tile.row !== targetRow) tile.row = targetRow
       targetRow--
     }
-
     spawnNewTiles(col, targetRow)
   }
 
@@ -307,25 +339,26 @@ function spawnNewTiles(col: number, fromRow: number) {
   while (targetRow >= 0) {
     const base = props.types[Math.floor(Math.random() * props.types.length)]
     const newTile: TileType = {
-      id: tileIdCounter++,
-      icon: base.icon,
-      color: base.color,
-      row: targetRow,
-      col,
-      appearing: true,
+      id: tileIdCounter++, icon: base.icon, color: base.color, row: targetRow, col, appearing: true
     }
     tiles.value.push(newTile)
-
     requestAnimationFrame(() => {
       newTile.appearing = false
     })
-
     targetRow--
   }
 }
 
-function getTile(row: number, col: number): TileType | undefined {
-  return tiles.value.find(tile => tile.row === row && tile.col === col)
+function removeMarkedTiles() {
+  if (matchSound) {
+    matchSound.currentTime = 0
+    matchSound.play()
+  }
+
+  setTimeout(() => {
+    tiles.value = tiles.value.filter(tile => !tile.removing)
+    particles.value = []
+  }, 600)
 }
 
 const boardStyle = computed<CSSProperties>(() => ({
@@ -352,6 +385,8 @@ function getTileStyle(tile: TileType): CSSProperties {
     borderRadius: '0.5rem',
     cursor: tile.locked ? 'default' : 'pointer',
     opacity: tile.locked ? 0.2 : 1,
+    fontWeight: tile.specialType ? 'bold' : 'normal',
+    border: tile.specialType ? '0.125rem dashed #333' : undefined
   }
 }
 </script>
@@ -364,23 +399,19 @@ function getTileStyle(tile: TileType): CSSProperties {
   border-radius: 0.75rem;
   overflow: hidden;
 }
-
 .tile {
   user-select: none;
   transition: opacity 0.3s ease, transform 0.3s linear;
 }
-
 .selected {
   outline: 0.125rem solid #00f;
   z-index: 5;
 }
-
 .tile.removing {
   opacity: 0;
   transform: scale(0.7);
   pointer-events: none;
 }
-
 .particle {
   position: absolute;
   width: 0.75rem;
@@ -391,15 +422,8 @@ function getTileStyle(tile: TileType): CSSProperties {
   pointer-events: none;
   animation: pop 0.6s ease-out forwards;
 }
-
 @keyframes pop {
-  0% {
-    transform: scale(1) translate(0, 0);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(0.2) translate(0, -1.25rem);
-    opacity: 0;
-  }
+  0% { transform: scale(1) translate(0, 0); opacity: 1; }
+  100% { transform: scale(0.2) translate(0, -1.25rem); opacity: 0; }
 }
 </style>

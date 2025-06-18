@@ -22,6 +22,8 @@ import { ref, watch, computed } from 'vue'
 import Match3Board from './Match3Board.vue'
 import PlayerScore from './PlayerScore.vue'
 
+const emit = defineEmits(['end-game'])
+
 const props = defineProps<{
   rows: number
   cols: number
@@ -30,6 +32,10 @@ const props = defineProps<{
   availableMoves: number
   playerName: string
 }>()
+
+const handleExit = () => {
+  emit('end-game')
+}
 
 const totalScore = ref(0)
 const highScore = ref(0)
@@ -45,6 +51,7 @@ function handleMovesUpdate(moves: number) {
   movesMade.value = moves
   if (remainingMoves.value <= 0) {
     // tu możesz dodać logikę końca rundy, restart planszy itp.
+    handleExit()
   }
 }
 

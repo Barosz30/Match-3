@@ -25,13 +25,18 @@ const startGame = (difficulty: 'easy' | 'medium' | 'hard') => {
   if (!playerName.value.trim()) return
 
   const settings = {
-    easy: { cols: 6, rows: 6, availableMoves: 30, types: allTypes.slice(0, 4) },
+    easy: { cols: 6, rows: 6, availableMoves: 3, types: allTypes.slice(0, 4) },
     medium: { cols: 7, rows: 7, availableMoves: 30, types: allTypes.slice(0, 6) },
     hard: { cols: 8, rows: 8, availableMoves: 30, types: allTypes }
   }
 
   gameSettings.value = settings[difficulty]
 }
+
+const endGame = () => {
+  gameSettings.value = null
+}
+
 </script>
 
 <template>
@@ -59,7 +64,8 @@ const startGame = (difficulty: 'easy' | 'medium' | 'hard') => {
         :rows="gameSettings.rows"
         :types="gameSettings.types"
         :available-moves="gameSettings.availableMoves"
-        :playerName="playerName"
+        :player-name="playerName"
+        @end-game="endGame"
       />
     </div>
   </div>
