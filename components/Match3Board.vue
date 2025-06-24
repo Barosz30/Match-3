@@ -12,14 +12,18 @@
       @click="handleClick(tile)"
     >
       <span v-if="!tile.locked">
-        {{ tile.specialType === 'bomb' ? '💣' : tile.specialType === 'line' ? '💥' : tile.icon }}
-      </span>
+    {{
+      tile.specialType === 'bomb' ? '💣' :
+      tile.specialType === 'line-horizontal' ? '🚀' :
+      tile.specialType === 'line-vertical' ? '⚡' :
+      tile.icon
+    }}
+</span>
     </div>
 
     <div
       v-for="particle in particles"
       :key="particle.id"
-      class="particle"
       :style="{
         top: `${particle.y}px`,
         left: `${particle.x}px`
@@ -56,7 +60,7 @@ interface TileType {
   locked?: boolean
   appearing?: boolean
   removing?: boolean
-  specialType?: 'line' | 'bomb'
+  specialType?: 'line-horizontal'| 'line-vertical' | 'bomb'
 }
 
 const tiles = ref<TileType[]>([])
@@ -186,12 +190,14 @@ function handleClick(tile: TileType) {
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             if (a.specialType) {
+              triggeredSpecials.clear()
               triggerSpecial(a)
               removeMarkedTiles()
               setTimeout(() => applyGravity(), 600)
               return
             }
             if (b.specialType) {
+              triggeredSpecials.clear()
               triggerSpecial(b)
               removeMarkedTiles()
               setTimeout(() => applyGravity(), 600)
@@ -212,17 +218,33 @@ function handleClick(tile: TileType) {
   }
 }
 
+const triggeredSpecials = new Set<number>()
+
 function triggerSpecial(tile: TileType) {
-  if (tile.specialType === 'line') {
+  if (triggeredSpecials.has(tile.id)) return
+  triggeredSpecials.add(tile.id)
+
+  const tryTrigger = (t: TileType | undefined) => {
+    if (!t || t.locked) return
+    if (t.specialType && !triggeredSpecials.has(t.id)) {
+      triggerSpecial(t)
+    } else {
+      t.removing = true
+    }
+  }
+
+  if (tile.specialType === 'line-horizontal') {
     for (let col = 0; col < props.cols; col++) {
-      const t = getTile(tile.row, col)
-      if (t && !t.locked) t.removing = true
+      tryTrigger(getTile(tile.row, col))
+    }
+  } else if (tile.specialType === 'line-vertical') {
+    for (let row = 0; row < props.rows; row++) {
+      tryTrigger(getTile(row, tile.col))
     }
   } else if (tile.specialType === 'bomb') {
     for (let r = tile.row - 1; r <= tile.row + 1; r++) {
       for (let c = tile.col - 1; c <= tile.col + 1; c++) {
-        const t = getTile(r, c)
-        if (t && !t.locked) t.removing = true
+        tryTrigger(getTile(r, c))
       }
     }
   }
@@ -279,7 +301,16 @@ function checkAndClearMatches(): boolean {
     for (const tile of group) matchedIds.add(tile.id)
     if (group.length >= 4) {
       const specialTile = group[Math.floor(group.length / 2)]
-      specialTile.specialType = group.length >= 5 ? 'bomb' : 'line'
+      const isHorizontal = group.every(tile => tile.row === group[0].row)
+      const isVertical = group.every(tile => tile.col === group[0].col)
+
+      if (group.length >= 5 && isHorizontal && isVertical) {
+        specialTile.specialType = 'bomb'
+      } else if (isHorizontal) {
+        specialTile.specialType = 'line-horizontal'
+      } else if (isVertical) {
+        specialTile.specialType = 'line-vertical'
+      }
       specialTile.removing = false
       matchedIds.delete(specialTile.id)
     }
@@ -291,11 +322,15 @@ function checkAndClearMatches(): boolean {
   }
 
   for (const tile of tiles.value) {
-    if (matchedIds.has(tile.id)) {
+  if (matchedIds.has(tile.id)) {
+    if (tile.specialType && !triggeredSpecials.has(tile.id)) {
+      triggerSpecial(tile)
+    } else {
       tile.removing = true
-      particles.value.push({ id: particleId++, x: tile.col * tileSize + tileSize / 2, y: tile.row * tileSize + tileSize / 2 })
     }
+    particles.value.push({ id: particleId++, x: tile.col * tileSize + tileSize / 2, y: tile.row * tileSize + tileSize / 2 })
   }
+}
 
   setTimeout(() => {
     tiles.value = tiles.value.filter(tile => !tile.removing)
@@ -355,6 +390,12 @@ function removeMarkedTiles() {
     matchSound.play()
   }
 
+  // Odpal efekty specjalnych kafelków przed usunięciem
+  const specials = tiles.value.filter(t => t.removing && t.specialType)
+  for (const tile of specials) {
+    triggerSpecial(tile)
+  }
+
   setTimeout(() => {
     tiles.value = tiles.value.filter(tile => !tile.removing)
     particles.value = []
@@ -386,7 +427,6 @@ function getTileStyle(tile: TileType): CSSProperties {
     cursor: tile.locked ? 'default' : 'pointer',
     opacity: tile.locked ? 0.2 : 1,
     fontWeight: tile.specialType ? 'bold' : 'normal',
-    border: tile.specialType ? '0.125rem dashed #333' : undefined
   }
 }
 </script>
@@ -412,16 +452,7 @@ function getTileStyle(tile: TileType): CSSProperties {
   transform: scale(0.7);
   pointer-events: none;
 }
-.particle {
-  position: absolute;
-  width: 0.75rem;
-  height: 0.75rem;
-  border-radius: 50%;
-  background-color: white;
-  opacity: 0.9;
-  pointer-events: none;
-  animation: pop 0.6s ease-out forwards;
-}
+
 @keyframes pop {
   0% { transform: scale(1) translate(0, 0); opacity: 1; }
   100% { transform: scale(0.2) translate(0, -1.25rem); opacity: 0; }
