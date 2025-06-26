@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import Match3Game from './components/Match3Game.vue'
-import { useScores } from './hooks/useScores';
+import { useScores } from './hooks/useScores'
+
+type Difficulty = 'easy' | 'medium' | 'hard'
 
 const leaderboard = ref<Record<string, { nickname: string; score: number }[]>>({
   easy: Array(1).fill({ nickname: '???', score: 'Loading...' }),
@@ -15,9 +17,7 @@ const fetchLeaderboard = async () => {
   }
 }
 
-onMounted(async () => {
-  fetchLeaderboard();
-})
+onMounted(fetchLeaderboard)
 
 const allTypes = [
   { icon: '🍓', color: '#e74c3c' },
@@ -29,38 +29,62 @@ const allTypes = [
   { icon: '🥝', color: '#16a085' }
 ]
 
-const gameSettings = ref<null | {
+const gameSettings = ref<{
   cols: number
   rows: number
   availableMoves: number
   types: typeof allTypes
-  difficulty: 'easy' | 'medium' | 'hard'
-}>(null)
+  difficulty: Difficulty
+} | null>(null)
 
 const playerName = ref('Ryszard')
 
-const startGame = (difficulty: 'easy' | 'medium' | 'hard') => {
+const backgroundAudio = ref<HTMLAudioElement | null>(null)
+
+const startMusic = async () => {
+  if (backgroundAudio.value) return // Już gra
+
+  const musicfile = '/sounds/background-hard.mp3'
+
+  const audio = new Audio(musicfile)
+  audio.loop = true
+  audio.volume = 0.5 // opcjonalnie, nie za głośno
+
+  audio.addEventListener('canplaythrough', () => {
+    audio.play()
+  })
+
+  backgroundAudio.value = audio
+}
+
+const stopMusic = () => {
+    backgroundAudio.value?.pause()
+    backgroundAudio.value = null
+}
+
+const startGame = (difficulty: Difficulty) => {
   if (!playerName.value.trim()) return
 
-  const settings: Record<'easy' | 'medium' | 'hard', {
+  const settings: Record<Difficulty, {
   cols: number
   rows: number
   availableMoves: number
   types: typeof allTypes
-  difficulty: 'easy' | 'medium' | 'hard'
+  difficulty: Difficulty
 }> = {
   easy: { cols: 6, rows: 6, availableMoves: 30, types: allTypes.slice(0, 4), difficulty: 'easy' },
-  medium: { cols: 7, rows: 7, availableMoves: 30, types: allTypes.slice(0, 5), difficulty: 'medium' },
+  medium: { cols: 7, rows: 7, availableMoves: 3, types: allTypes.slice(0, 5), difficulty: 'medium' },
   hard: { cols: 8, rows: 8, availableMoves: 30, types: allTypes, difficulty: 'hard' }
 }
 
+  startMusic()
   gameSettings.value = settings[difficulty]
 }
 
 const endGame = () => {
+  stopMusic()
   gameSettings.value = null
 }
-
 </script>
 
 <template>

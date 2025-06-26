@@ -45,6 +45,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:score' | 'update:moves', value: number): void
+  (e: 'board-stable'): void
 }>()
 
 const tileSize = 4
@@ -360,6 +361,7 @@ function applyGravity() {
     } else {
       setTimeout(() => {
         tiles.value = [...tiles.value]
+        emit('board-stable')
       }, 300)
     }
   }, 250)

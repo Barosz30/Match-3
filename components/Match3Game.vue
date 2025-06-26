@@ -9,6 +9,7 @@
       :locked-tiles="lockedTiles"
       @update:score="handleScoreUpdate"
       @update:moves="handleMovesUpdate"
+      @board-stable="handleBoardStable"
     />
 
     <div class="moves-left">
@@ -36,6 +37,7 @@ const props = defineProps<{
   difficulty: 'easy' | 'medium' | 'hard'
 }>()
 
+
 // const handleExit = () => {
 //   emit('end-game')
 // }
@@ -55,14 +57,19 @@ function handleGameOver(finalScore: number) {
     .then(() => {
       console.log('Wynik zapisany!')
       emit('fetch-leaderboard')
+      
+    })
+    .finally(() => {
       emit('end-game')
     })
 }
 
 function handleMovesUpdate(moves: number) {
   movesMade.value = moves
+}
+
+function handleBoardStable() {
   if (remainingMoves.value <= 0) {
-    // tu możesz dodać logikę końca rundy, restart planszy itp.
     handleGameOver(totalScore.value)
   }
 }
