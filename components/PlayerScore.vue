@@ -2,6 +2,7 @@
   <div class="scoreboard">
     <div>{{ score.name }}</div>
     <div>Punkty: {{ score.total }}</div>
+    <div>Ruchy: {{ score.remainingMoves }} / {{ score.availableMoves }} </div>
   </div>
 </template>
 
@@ -10,6 +11,8 @@ defineProps<{
   score: {
     total: number
     name: string
+    remainingMoves: number
+    availableMoves: number
   }
 }>()
 </script>

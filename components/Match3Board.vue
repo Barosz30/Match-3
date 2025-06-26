@@ -24,10 +24,7 @@
     <div
       v-for="particle in particles"
       :key="particle.id"
-      :style="{
-        top: `${particle.y}px`,
-        left: `${particle.x}px`
-      }"
+      :style="{ top: `${particle.y}px`, left: `${particle.x}px` }"
     />
   </div>
 </template>
@@ -49,7 +46,7 @@ const emit = defineEmits<{
   (e: 'board-stable'): void
 }>()
 
-const tileSize = 4
+
 const lockedIndices = computed(() => props.lockedTiles ?? [])
 let tileIdCounter = 0
 
@@ -79,6 +76,7 @@ onMounted(() => {
     matchSound = new Audio('/sounds/match.wav')
   }
 })
+
 
 function generateInitialBoard(): TileType[] {
   let attempt = 0
@@ -330,7 +328,11 @@ function checkAndClearMatches(): boolean {
     } else {
       tile.removing = true
     }
-    particles.value.push({ id: particleId++, x: tile.col * tileSize + tileSize / 2, y: tile.row * tileSize + tileSize / 2 })
+    particles.value.push({
+  id: particleId++,
+  x: tile.col * tileSizePx.value + tileSizePx.value / 2,
+  y: tile.row * tileSizePx.value + tileSizePx.value / 2
+})
   }
 }
 
@@ -387,9 +389,24 @@ function spawnNewTiles(col: number, fromRow: number) {
   }
 }
 
+const windowSize = ref({ width: 0, height: 0 })
+
+function updateWindowSize() {
+  windowSize.value.width = window.innerWidth
+  windowSize.value.height = window.innerHeight
+}
+
+onMounted(() => {
+  updateWindowSize()
+  window.addEventListener('resize', updateWindowSize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateWindowSize)
+})
+
 const boardSizePx = computed(() => {
-  const min = Math.min(props.containerSize.width, props.containerSize.height)
-  return min * 0.9
+  return Math.min(windowSize.value.width, windowSize.value.height) * 0.95
 })
 
 const tileSizePx = computed(() => {
@@ -422,12 +439,12 @@ const boardStyle = computed<CSSProperties>(() => ({
 }))
 
 function getTileStyle(tile: TileType): CSSProperties {
-  const top = tile.appearing ? -1 : tile.row
+  const top = tile.appearing ? -tileSizePx.value : tile.row * tileSizePx.value
   return {
     position: 'absolute',
     width: `${tileSizePx.value}px`,
     height: `${tileSizePx.value}px`,
-    top: `${top * tileSizePx.value}px`,
+    top: `${top}px`,
     left: `${tile.col * tileSizePx.value}px`,
     backgroundColor: tile.color,
     transition: 'top 0.3s ease, left 0.3s ease',

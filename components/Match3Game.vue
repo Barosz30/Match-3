@@ -1,7 +1,5 @@
 <template>
   <div class="match3-game">
-    <PlayerScore :score="{ total: totalScore, name: playerName }" />
-
     <Match3Board
       :rows="rows"
       :cols="cols"
@@ -12,10 +10,9 @@
       @update:moves="handleMovesUpdate"
       @board-stable="handleBoardStable"
     />
+    <PlayerScore :score="{ total: totalScore, name: playerName, remainingMoves: remainingMoves, availableMoves: availableMoves }" />
 
-    <div class="moves-left">
-      Ruchy: {{ remainingMoves }} / {{ availableMoves }}
-    </div>
+    
   </div>
 </template>
 
@@ -90,5 +87,11 @@ watch(totalScore, (val) => {
 .moves-left {
   font-size: 1rem;
   margin-top: 0.5rem;
+}
+
+@media (max-width: 600px) {
+  .match3-game {
+    padding: 1rem 0;
+  }
 }
 </style>

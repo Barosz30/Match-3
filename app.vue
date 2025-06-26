@@ -8,6 +8,22 @@ type Difficulty = 'easy' | 'medium' | 'hard'
 const wrapperRef = ref<HTMLElement | null>(null)
 const containerSize = ref({ width: 0, height: 0 })
 
+function updateContainerSize() {
+  containerSize.value = {
+    width: window.innerWidth,
+    height: window.innerHeight - 160
+  }
+}
+
+onMounted(() => {
+  updateContainerSize()
+  window.addEventListener('resize', updateContainerSize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateContainerSize)
+})
+
 let observer: ResizeObserver | null = null
 
 onMounted(() => {
@@ -80,9 +96,9 @@ const startGame = (difficulty: Difficulty) => {
   if (!playerName.value.trim()) return
 
   const settings: Record<Difficulty, typeof gameSettings.value> = {
-    easy: { cols: 6, rows: 6, availableMoves: 30, types: allTypes.slice(0, 4), difficulty },
-    medium: { cols: 7, rows: 7, availableMoves: 30, types: allTypes.slice(0, 5), difficulty },
-    hard: { cols: 8, rows: 8, availableMoves: 30, types: allTypes, difficulty }
+    easy: { cols: 6, rows: 6, availableMoves: 15, types: allTypes.slice(0, 4), difficulty },
+    medium: { cols: 7, rows: 7, availableMoves: 20, types: allTypes.slice(0, 5), difficulty },
+    hard: { cols: 8, rows: 8, availableMoves: 25, types: allTypes, difficulty }
   }
 
   startMusic()
@@ -183,6 +199,7 @@ body {
   border-radius: 0.5em;
   border: 1px solid #ccc;
   box-sizing: border-box;
+  text-align: center;
 }
 
 .button-group {
@@ -250,6 +267,10 @@ th, td {
   .leaderboard {
     flex-direction: column;
     align-items: center;
+    margin: 0;
+  }
+  .wrapper {
+    padding: 2rem 0;
   }
 }
 </style>
