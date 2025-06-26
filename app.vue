@@ -1,9 +1,33 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, onBeforeUnmount, ref } from 'vue'
 import Match3Game from './components/Match3Game.vue'
 import { useScores } from './hooks/useScores'
 
 type Difficulty = 'easy' | 'medium' | 'hard'
+
+const wrapperRef = ref<HTMLElement | null>(null)
+const containerSize = ref({ width: 0, height: 0 })
+
+let observer: ResizeObserver | null = null
+
+onMounted(() => {
+  if (wrapperRef.value) {
+    observer = new ResizeObserver(entries => {
+      const entry = entries[0]
+      const { width, height } = entry.contentRect
+      containerSize.value = { width, height }
+    })
+    observer.observe(wrapperRef.value)
+  }
+
+  fetchLeaderboard()
+})
+
+onBeforeUnmount(() => {
+  if (observer && wrapperRef.value) {
+    observer.unobserve(wrapperRef.value)
+  }
+})
 
 const leaderboard = ref<Record<string, { nickname: string; score: number }[]>>({
   easy: Array(1).fill({ nickname: '???', score: 'Loading...' }),
@@ -17,16 +41,14 @@ const fetchLeaderboard = async () => {
   }
 }
 
-onMounted(fetchLeaderboard)
-
 const allTypes = [
-  { icon: '🍓', color: '#e74c3c' },
-  { icon: '🍋', color: '#f1c40f' },
-  { icon: '🍇', color: '#8e44ad' },
-  { icon: '🍊', color: '#e67e22' },
-  { icon: '🍉', color: '#27ae60' },
-  { icon: '🍍', color: '#f39c12' },
-  { icon: '🥝', color: '#16a085' }
+  { icon: '🍓', color: '#f8c1c1' }, // truskawka – jasnoróżowe tło
+  { icon: '🍋', color: '#fff6b0' }, // cytryna – pastelowy żółty
+  { icon: '🍇', color: '#d3b6e6' }, // winogrona – jasny fiolet
+  { icon: '🍊', color: '#ffd1a1' }, // pomarańcza – jasna pomarańcz
+  { icon: '🍉', color: '#b9f3cb' }, // arbuz – pastelowa zieleń
+  { icon: '🍍', color: '#ffe6a1' }, // ananas – złamany żółty
+  { icon: '🥝', color: '#b1e2b3' }  // kiwi – jasna mięta
 ]
 
 const gameSettings = ref<{
@@ -38,44 +60,30 @@ const gameSettings = ref<{
 } | null>(null)
 
 const playerName = ref('Ryszard')
-
 const backgroundAudio = ref<HTMLAudioElement | null>(null)
 
 const startMusic = async () => {
-  if (backgroundAudio.value) return // Już gra
-
-  const musicfile = '/sounds/background-hard.mp3'
-
-  const audio = new Audio(musicfile)
+  if (backgroundAudio.value) return
+  const audio = new Audio('/sounds/background-hard.mp3')
   audio.loop = true
-  audio.volume = 0.5 // opcjonalnie, nie za głośno
-
-  audio.addEventListener('canplaythrough', () => {
-    audio.play()
-  })
-
+  audio.volume = 0.5
+  audio.addEventListener('canplaythrough', () => audio.play())
   backgroundAudio.value = audio
 }
 
 const stopMusic = () => {
-    backgroundAudio.value?.pause()
-    backgroundAudio.value = null
+  backgroundAudio.value?.pause()
+  backgroundAudio.value = null
 }
 
 const startGame = (difficulty: Difficulty) => {
   if (!playerName.value.trim()) return
 
-  const settings: Record<Difficulty, {
-  cols: number
-  rows: number
-  availableMoves: number
-  types: typeof allTypes
-  difficulty: Difficulty
-}> = {
-  easy: { cols: 6, rows: 6, availableMoves: 30, types: allTypes.slice(0, 4), difficulty: 'easy' },
-  medium: { cols: 7, rows: 7, availableMoves: 3, types: allTypes.slice(0, 5), difficulty: 'medium' },
-  hard: { cols: 8, rows: 8, availableMoves: 30, types: allTypes, difficulty: 'hard' }
-}
+  const settings: Record<Difficulty, typeof gameSettings.value> = {
+    easy: { cols: 6, rows: 6, availableMoves: 30, types: allTypes.slice(0, 4), difficulty },
+    medium: { cols: 7, rows: 7, availableMoves: 30, types: allTypes.slice(0, 5), difficulty },
+    hard: { cols: 8, rows: 8, availableMoves: 30, types: allTypes, difficulty }
+  }
 
   startMusic()
   gameSettings.value = settings[difficulty]
@@ -88,17 +96,11 @@ const endGame = () => {
 </script>
 
 <template>
-  <div class="wrapper">
+  <div ref="wrapperRef" class="wrapper" >
     <div v-if="!gameSettings" class="settings-and-scores">
       <div class="start-screen">
-        
         <h2 class="title">Podaj swoje imię:</h2>
-        <input
-          v-model="playerName"
-          type="text"
-          class="name-input"
-          placeholder="Twoje imię"
-        >
+        <input v-model="playerName" type="text" class="name-input" placeholder="Twoje imię" >
 
         <h2 class="title">Wybierz poziom trudności:</h2>
         <div class="button-group">
@@ -114,9 +116,7 @@ const endGame = () => {
           <div v-for="diff in ['easy', 'medium', 'hard']" :key="diff" class="leaderboard-section">
             <h3>{{ diff.toUpperCase() }}</h3>
             <table>
-              <thead>
-                <tr><th>#</th><th>Gracz</th><th>Wynik</th></tr>
-              </thead>
+              <thead><tr><th>#</th><th>Gracz</th><th>Wynik</th></tr></thead>
               <tbody>
                 <tr v-for="(entry, index) in leaderboard[diff]" :key="index">
                   <td>{{ index + 1 }}</td>
@@ -128,7 +128,7 @@ const endGame = () => {
           </div>
         </div>
       </div>
-  </div>
+    </div>
 
     <div v-else>
       <Match3Game
@@ -138,6 +138,7 @@ const endGame = () => {
         :available-moves="gameSettings.availableMoves"
         :player-name="playerName"
         :difficulty="gameSettings.difficulty"
+        :container-size="containerSize"
         @end-game="endGame"
         @fetch-leaderboard="fetchLeaderboard"
       />
@@ -251,5 +252,4 @@ th, td {
     align-items: center;
   }
 }
-
 </style>

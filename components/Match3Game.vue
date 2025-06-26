@@ -7,6 +7,7 @@
       :cols="cols"
       :types="types"
       :locked-tiles="lockedTiles"
+      :container-size="containerSize"
       @update:score="handleScoreUpdate"
       @update:moves="handleMovesUpdate"
       @board-stable="handleBoardStable"
@@ -22,8 +23,7 @@
 import { ref, watch, computed } from 'vue'
 import Match3Board from './Match3Board.vue'
 import PlayerScore from './PlayerScore.vue'
-import { submitScore } from '~/hooks/submitScore';
-
+import { submitScore } from '~/hooks/submitScore'
 
 const emit = defineEmits(['end-game', 'fetch-leaderboard'])
 
@@ -35,12 +35,8 @@ const props = defineProps<{
   availableMoves: number
   playerName: string
   difficulty: 'easy' | 'medium' | 'hard'
+  containerSize: { width: number; height: number }
 }>()
-
-
-// const handleExit = () => {
-//   emit('end-game')
-// }
 
 const totalScore = ref(0)
 const highScore = ref(0)
@@ -57,7 +53,6 @@ function handleGameOver(finalScore: number) {
     .then(() => {
       console.log('Wynik zapisany!')
       emit('fetch-leaderboard')
-      
     })
     .finally(() => {
       emit('end-game')
@@ -88,6 +83,8 @@ watch(totalScore, (val) => {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
+  max-width: 100vw;
+  box-sizing: border-box;
 }
 
 .moves-left {

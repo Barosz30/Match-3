@@ -41,6 +41,7 @@ const props = defineProps<{
   cols: number
   types: { icon: string; color: string }[]
   lockedTiles?: number[]
+  containerSize: { width: number; height: number }
 }>()
 
 const emit = defineEmits<{
@@ -386,6 +387,15 @@ function spawnNewTiles(col: number, fromRow: number) {
   }
 }
 
+const boardSizePx = computed(() => {
+  const min = Math.min(props.containerSize.width, props.containerSize.height)
+  return min * 0.9
+})
+
+const tileSizePx = computed(() => {
+  return boardSizePx.value / Math.max(props.rows, props.cols)
+})
+
 function removeMarkedTiles() {
   if (matchSound) {
     matchSound.currentTime = 0
@@ -406,26 +416,26 @@ function removeMarkedTiles() {
 
 const boardStyle = computed<CSSProperties>(() => ({
   position: 'relative',
-  width: `${props.cols * tileSize}rem`,
-  height: `${props.rows * tileSize}rem`,
+  width: `${boardSizePx.value}px`,
+  height: `${boardSizePx.value}px`,
   margin: '0 auto',
 }))
 
 function getTileStyle(tile: TileType): CSSProperties {
-  const top = tile.appearing ? -tileSize : tile.row * tileSize
+  const top = tile.appearing ? -1 : tile.row
   return {
     position: 'absolute',
-    width: `${tileSize}rem`,
-    height: `${tileSize}rem`,
-    top: `${top}rem`,
-    left: `${tile.col * tileSize}rem`,
+    width: `${tileSizePx.value}px`,
+    height: `${tileSizePx.value}px`,
+    top: `${top * tileSizePx.value}px`,
+    left: `${tile.col * tileSizePx.value}px`,
     backgroundColor: tile.color,
     transition: 'top 0.3s ease, left 0.3s ease',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '2rem',
-    borderRadius: '0.5rem',
+    fontSize: `${tileSizePx.value * 0.5}px`,
+    borderRadius: `${tileSizePx.value * 0.15}px`,
     cursor: tile.locked ? 'default' : 'pointer',
     opacity: tile.locked ? 0.2 : 1,
     fontWeight: tile.specialType ? 'bold' : 'normal',
