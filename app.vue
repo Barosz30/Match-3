@@ -184,7 +184,6 @@ body {
   text-align: center;
   max-width: 25rem;
   width: 100%;
-  padding: 1rem;
 }
 
 .title {
@@ -233,6 +232,7 @@ button:disabled {
   justify-content: center;
   align-items: center;
   gap: 5rem;
+  padding: 1rem;
 }
 
 .scores {
