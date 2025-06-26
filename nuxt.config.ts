@@ -3,6 +3,12 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
   devtools: { enabled: true },
   modules: ['@nuxt/eslint', '@vite-pwa/nuxt'],
+  runtimeConfig: {
+    public: {
+      supabaseUrl: process.env.SUPABASE_URL,
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY
+    }
+  },
   pwa: {
     registerType: 'autoUpdate',
     includeAssets: ['favicon.ico', 'icons/*.svg'],

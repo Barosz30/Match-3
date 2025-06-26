@@ -21,8 +21,10 @@
 import { ref, watch, computed } from 'vue'
 import Match3Board from './Match3Board.vue'
 import PlayerScore from './PlayerScore.vue'
+import { submitScore } from '~/hooks/submitScore';
 
-const emit = defineEmits(['end-game'])
+
+const emit = defineEmits(['end-game', 'fetch-leaderboard'])
 
 const props = defineProps<{
   rows: number
@@ -31,11 +33,12 @@ const props = defineProps<{
   lockedTiles?: number[]
   availableMoves: number
   playerName: string
+  difficulty: 'easy' | 'medium' | 'hard'
 }>()
 
-const handleExit = () => {
-  emit('end-game')
-}
+// const handleExit = () => {
+//   emit('end-game')
+// }
 
 const totalScore = ref(0)
 const highScore = ref(0)
@@ -47,11 +50,20 @@ function handleScoreUpdate(score: number) {
   totalScore.value = score
 }
 
+function handleGameOver(finalScore: number) {
+  submitScore(props.playerName, finalScore, props.difficulty)
+    .then(() => {
+      console.log('Wynik zapisany!')
+      emit('fetch-leaderboard')
+      emit('end-game')
+    })
+}
+
 function handleMovesUpdate(moves: number) {
   movesMade.value = moves
   if (remainingMoves.value <= 0) {
     // tu możesz dodać logikę końca rundy, restart planszy itp.
-    handleExit()
+    handleGameOver(totalScore.value)
   }
 }
 
