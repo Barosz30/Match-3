@@ -184,6 +184,7 @@ body {
   text-align: center;
   max-width: 25rem;
   width: 100%;
+  padding: 1rem;
 }
 
 .title {
