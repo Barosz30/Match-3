@@ -1,8 +1,10 @@
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
   devtools: { enabled: true },
-  modules: ['@nuxt/eslint', '@vite-pwa/nuxt'],
+  css: ['~/assets/css/main.css'],
+  modules: ['@nuxt/eslint', '@vite-pwa/nuxt', 'unplugin-icons/nuxt', '@nuxtjs/tailwindcss'],
   runtimeConfig: {
     public: {
       supabaseUrl: process.env.SUPABASE_URL,
