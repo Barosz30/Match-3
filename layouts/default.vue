@@ -3,7 +3,7 @@
     <!-- Navigation -->
     <nav class="bg-white/90 backdrop-blur-md shadow-lg border-b-4 border-orange-300">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-16">
+        <div class="flex justify-between items-center h-auto p-2 xs:flex-col flex-row gap-4">
           <div class="flex items-center space-x-2">
             <div class="text-3xl">🍎</div>
             <h1 class="text-2xl font-bold text-orange-600">FruitMatch</h1>

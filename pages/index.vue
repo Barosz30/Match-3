@@ -127,7 +127,7 @@ const endGame = () => {
     <div class="max-w-4xl w-full">
       <div v-if="!gameSettings">
         <div class="text-center mb-12">
-          <div class="text-8xl mb-4 animate-bounce">🍎🍊🍌</div>
+          <div class="text-8xl mb-4 animate-bounce">🍎<span class="xs:hidden inline">🍊</span>🍌</div>
           <h1 class="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-600 via-red-500 to-green-600 mb-4">
             FruitMatch
           </h1>
