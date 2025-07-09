@@ -38,7 +38,7 @@
               v-for="(player, index) in leaderboard[difficulty]"
               :key="index"
               :class="[
-                'flex items-center gap-3 p-3 rounded-xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-lg',
+                'flex items-center gap-3 p-3 rounded-xl border-2 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg',
                 getRankBg(index + 1)
               ]"
             >

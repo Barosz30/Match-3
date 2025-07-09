@@ -11,6 +11,12 @@
       @board-stable="handleBoardStable"
     />
     <PlayerScore :score="{ total: totalScore, name: playerName, remainingMoves: remainingMoves, availableMoves: availableMoves }" />
+    <GameOverDialog
+      :visible="showGameOverDialog"
+      :name="props.playerName"
+      :score="gameOverScore"
+      @close="handleGameOverClose"
+    />
 
     
   </div>
@@ -21,6 +27,10 @@ import { ref, watch, computed } from 'vue'
 import Match3Board from './Match3Board.vue'
 import PlayerScore from './PlayerScore.vue'
 import { submitScore } from '~/hooks/submitScore'
+import GameOverDialog from './GameOverDialog.vue'
+
+const showGameOverDialog = ref(false)
+const gameOverScore = ref(0)
 
 const emit = defineEmits(['end-game', 'fetch-leaderboard'])
 
@@ -46,14 +56,8 @@ function handleScoreUpdate(score: number) {
 }
 
 function handleGameOver(finalScore: number) {
-  submitScore(props.playerName, finalScore, props.difficulty)
-    .then(() => {
-      console.log('Wynik zapisany!')
-      emit('fetch-leaderboard')
-    })
-    .finally(() => {
-      emit('end-game')
-    })
+  gameOverScore.value = finalScore
+  showGameOverDialog.value = true
 }
 
 function handleMovesUpdate(moves: number) {
@@ -64,6 +68,18 @@ function handleBoardStable() {
   if (remainingMoves.value <= 0) {
     handleGameOver(totalScore.value)
   }
+}
+
+function handleGameOverClose() {
+  submitScore(props.playerName, gameOverScore.value, props.difficulty)
+    .then(() => {
+      console.log('Wynik zapisany!')
+      emit('fetch-leaderboard')
+    })
+    .finally(() => {
+      emit('end-game')
+      showGameOverDialog.value = false
+    })
 }
 
 watch(totalScore, (val) => {
