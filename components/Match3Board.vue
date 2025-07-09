@@ -406,7 +406,9 @@ onUnmounted(() => {
 })
 
 const boardSizePx = computed(() => {
-  return Math.min(windowSize.value.width, windowSize.value.height) * 0.95
+  const maxSize = 600
+  const screenBased = Math.min(windowSize.value.width, windowSize.value.height) * 0.95
+  return Math.min(screenBased, maxSize)
 })
 
 const tileSizePx = computed(() => {
