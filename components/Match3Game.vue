@@ -1,5 +1,9 @@
 <template>
   <div class="match3-game">
+    <!-- Empty spacer div -->
+    <div class="m:hidden block w-[100px]"></div>
+
+    <!-- Game board -->
     <Match3Board
       :rows="rows"
       :cols="cols"
@@ -10,15 +14,25 @@
       @update:moves="handleMovesUpdate"
       @board-stable="handleBoardStable"
     />
-    <PlayerScore :score="{ total: totalScore, name: playerName, remainingMoves: remainingMoves, availableMoves: availableMoves }" />
+
+    <!-- Player score panel -->
+    <PlayerScore
+      :score="{
+        total: totalScore,
+        name: playerName,
+        remainingMoves: remainingMoves,
+        availableMoves: availableMoves
+      }"
+      class="w-auto"
+    />
+
+    <!-- Game over dialog -->
     <GameOverDialog
       :visible="showGameOverDialog"
       :name="props.playerName"
       :score="gameOverScore"
       @close="handleGameOverClose"
     />
-
-    
   </div>
 </template>
 
@@ -94,10 +108,12 @@ watch(totalScore, (val) => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 1rem;
   padding: 1rem;
   max-width: 100vw;
   box-sizing: border-box;
+  min-height: 100vh;
 }
 
 .moves-left {
@@ -105,9 +121,12 @@ watch(totalScore, (val) => {
   margin-top: 0.5rem;
 }
 
-@media (max-width: 600px) {
+
+@media (min-width: 1000px) {
   .match3-game {
-    padding: 1rem 0;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
   }
 }
 </style>

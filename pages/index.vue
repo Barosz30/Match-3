@@ -123,9 +123,9 @@ const endGame = () => {
 </script>
 
 <template>
-  <div ref="wrapperRef" class="min-h-screen flex items-center justify-center p-4">
-    <div class="max-w-4xl w-full">
-      <div v-if="!gameSettings">
+  <div ref="wrapperRef" class="min-h-screen flex justify-center p-4">
+    <div v-if="!gameSettings" class="max-w-4xl w-full items-center">
+      <div>
         <div class="text-center mb-12">
           <div class="text-8xl mb-4 animate-bounce">🍎<span class="xs:hidden inline">🍊</span>🍌</div>
           <h1 class="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-600 via-red-500 to-green-600 mb-4">
@@ -197,8 +197,10 @@ const endGame = () => {
         </div>
       </div>
 
-      <Match3Game
-        v-else
+      
+    </div>
+    <Match3Game
+        v-if="gameSettings"
         :cols="gameSettings.cols"
         :rows="gameSettings.rows"
         :types="gameSettings.types"
@@ -209,6 +211,5 @@ const endGame = () => {
         @end-game="endGame"
         @fetch-leaderboard="fetchLeaderboard"
       />
-    </div>
   </div>
 </template>
