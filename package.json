@@ -12,7 +12,7 @@
   "dependencies": {
     "@nuxt/eslint": "^1.4.1",
     "@vite-pwa/nuxt": "^1.0.3",
-    "axios": "1.11.0",
+    "axios": "1.16.0",
     "eslint": "^9.28.0",
     "lucide-vue-next": "^0.525.0",
     "nuxt": "^3.17.5",
